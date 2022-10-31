@@ -1,0 +1,52 @@
+#include SoftwareSerial.h
+#include DHT11.h
+
+int dht_pin = 4;      //온습도 센서 핀 번호 지정
+DHT11 dht11(dht_pin); //지정한 핀에 따라 센서 설정
+
+int bRx = 1; //블루투스의 RX와 연결한 부분
+int bTx = 0; //블루투스의 TX와 연결한 부분
+
+int light_pin = A0;//조도 센서 핀 번호 지정
+int light_sense;  //조도 측정치
+
+float humi, temp; //습도, 온도 측정치
+
+void setup() {
+  Serial.begin(9600); //시리얼 통신을 9600Baud로 지정
+  delay(100);
+  light_sense = humi = temp = 0;  //각 측정치 변수 초기화
+
+   while (!Serial) {
+        ;  //시리얼 포트를 연결할 수 있을 때까지 대기
+   }
+}
+
+void loop()
+{
+  while(true){
+    int s = Serial.read();  //애플리케이션에서 데이터 수신
+    if(s == 49) break;      //애플리케이션에서 1을 전송 받으면 측정시작
+  }
+  
+  light_sense = analogRead(light_pin);  //조도 센서로 조도를 측정
+  light_sense = 1024 - light_sense;     //측정값을 밝으면 큰 값을 갖도록 재계산
+
+  Serial.print("lux:");    //”lux:” 시리얼포트로 전송
+  Serial.print(light_sense); //조도 측정치 시리얼포트로 전송
+  
+  int err;
+  if((err=dht11.read(humi, temp))==0){ //측정시 에러 확인
+  //습도와 온도의 측정치를 각각 구분자와 함께 시리얼포트로 전송
+    Serial.print("_wet:");
+    Serial.print(int(humi));
+    Serial.print("_wintemp:");
+    Serial.print(int(temp));
+    Serial.println(); //애플리케이션에서 문장의 끝을 나타내기 위한 줄바꿈 시리얼포트로 전송
+  }
+  else{
+    Serial.println(err);  //측정시 에러가 있다면, 에러 로그를 시리얼포트로 전송
+  }
+  
+  delay(DHT11_RETRY_DELAY); //온습도 센서가 다시 측정을 할 수 있을 때까지 대기
+}
